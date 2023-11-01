@@ -1,11 +1,7 @@
-import numpy as np
-from sb3_contrib import RecurrentPPO
 from reward_function import reward_function_drawdown
 from agent_module import PPOAgentModule
 from data_processor import DataProcessor
 import gymnasium as gym
-import gym_trading_env
-from stable_baselines3.common.vec_env import DummyVecEnv
 import pandas as pd
 
 
@@ -30,42 +26,38 @@ def main():
     df.head()
 
     # Setup training data
-    training_df = df[df["date"] <= "2022-12-31"]
+    training_df = df[df["date"] <= "2022-12-31"].copy()
     training_df.dropna(inplace=True)
     training_df.head()
 
     # Setup testing data
-    testing_df = df[df["date"] > "2022-12-31"]
+    testing_df = df[df["date"] > "2022-12-31"].copy()
     testing_df.dropna(inplace=True)
     testing_df.head()
-
-
 
     def trainer():
         #  load training environment
         training_env = gym.make("TradingEnv",
-                        df=training_df,
-                        positions=[0, 1],
-                        initial_position=1,
-                        portfolio_initial_value=1000,
-                        reward_function=reward_function_drawdown)
+                                df=training_df,
+                                positions=[0, 1],
+                                initial_position=1,
+                                portfolio_initial_value=1000,
+                                reward_function=reward_function_drawdown)
         # Train model
         agent = PPOAgentModule(training_env)
         agent.train(10000)
 
-
-
     def tester():
         # Load testing environment
         testing_env = gym.make("TradingEnv",
-                            df=testing_df,
-                            positions=[0, 1],
-                            initial_position=1,
-                            portfolio_initial_value=1000,
-                            reward_function=reward_function_drawdown)
+                               df=testing_df,
+                               positions=[0, 1],
+                               initial_position=1,
+                               portfolio_initial_value=1000,
+                               reward_function=reward_function_drawdown)
     
         # Load model and agent
-        agent = PPOAgentModule(testing_env, model_path="models/20231028212840_ppo_trading_agent.zip")
+        agent = PPOAgentModule(testing_env, model_path="models/20231101170410_ppo_trading_agent.zip")
         print(agent)
         agent.test(testing_env, testing_df)
     
@@ -89,5 +81,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
-

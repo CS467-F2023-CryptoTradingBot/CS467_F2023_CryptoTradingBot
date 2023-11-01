@@ -1,4 +1,4 @@
-from stable_baselines3 import RecurrentPPO
+from stable_baselines3 import PPO
 import torch
 from datetime import datetime
 import os
@@ -13,18 +13,18 @@ class PPOAgentModule:
         self.device = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu")
         if model_path:
-            self.model = RecurrentPPO.load(model_path)
+            self.model = PPO.load(model_path)
         else:
-            self.model = RecurrentPPO('MlpLstmPolicy',
-                                      env=self.env,
-                                      verbose=0,
-                                      gamma=0.7,
-                                      n_steps=200,
-                                      ent_coef=0.01,
-                                      learning_rate=0.001,
-                                      clip_range=0.1,
-                                      batch_size=15,
-                                      device=self.device)
+            self.model = PPO('MlpPolicy',
+                             env=self.env,
+                             verbose=0,
+                             gamma=0.7,
+                             n_steps=200,
+                             ent_coef=0.01,
+                             learning_rate=0.001,
+                             clip_range=0.1,
+                             batch_size=10,
+                             device=self.device)
 
     def train(self, total_timesteps):
         """
@@ -61,9 +61,11 @@ class PPOAgentModule:
         """
         print("Using device:", self.device)
         observation, info = test_env.reset()
+        _states = None
         print("Testing model on testing data.")
         for _ in range(len(testing_df)):
-            position_index, _states = self.model.predict(observation)
+            position_index, _states = self.model.predict(observation=observation,
+                                                         state=_states)
             observation, reward, done, truncated, info = test_env.step(
                 position_index)
             if done or truncated:

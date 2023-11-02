@@ -1,9 +1,13 @@
 from stable_baselines3 import PPO
 import torch
 from datetime import datetime
+
+import risk_management
+from risk_management import *
 import os
 
 RENDER_DIR = 'render_logs'
+
 
 
 class PPOAgentModule:
@@ -62,12 +66,20 @@ class PPOAgentModule:
         print("Using device:", self.device)
         observation, info = test_env.reset()
         _states = None
+        risk_data = RiskData()
         print("Testing model on testing data.")
         for _ in range(len(testing_df)):
             position_index, _states = self.model.predict(observation=observation,
                                                          state=_states)
             observation, reward, done, truncated, info = test_env.step(
                 position_index)
+
+            print(info)
+            if info["position"] == 0:
+                risk_data.update_risk_data(info)
+                if risk_management.run_risk_analysis(info, risk_data):
+                    print("SELL ASSETT")
+
             if done or truncated:
                 break
 

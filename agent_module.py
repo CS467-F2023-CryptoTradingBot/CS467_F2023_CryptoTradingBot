@@ -25,7 +25,7 @@ class PPOAgentModule:
                              gamma=0.7,
                              n_steps=200,
                              ent_coef=0.01,
-                             learning_rate=0.001,
+                             learning_rate=0.0003,
                              clip_range=0.1,
                              batch_size=10,
                              device=self.device)
@@ -65,23 +65,23 @@ class PPOAgentModule:
         """
         print("Using device:", self.device)
         observation, info = test_env.reset()
-        _states = None
         risk_data = RiskData()
         print("Testing model on testing data.")
         for _ in range(len(testing_df)):
-            position_index, _states = self.model.predict(observation=observation,
-                                                         state=_states)
-            observation, reward, done, truncated, info = test_env.step(
-                position_index)
+            position_index, _state = self.model.predict(observation=observation)
 
-            print(info)
-            if info["position"] == 0:
+            if position_index == 1:
+                # Run Risk Analysis After Prediction
                 risk_data.update_risk_data(info)
                 if risk_management.run_risk_analysis(info, risk_data):
-                    print("SELL ASSETT")
+                    position_index = 0
+
+            observation, reward, done, truncated, info = test_env.step(position_index)
 
             if done or truncated:
                 break
+
+        print("Portfolio Valuation: ", info["portfolio_valuation"])
 
         # Save render
         if not os.path.exists(RENDER_DIR):

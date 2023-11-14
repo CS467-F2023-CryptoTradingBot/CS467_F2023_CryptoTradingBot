@@ -14,7 +14,7 @@ def main():
         tqqq = dp.download_data_df_from_yf(
             symbol, start_date, stop_date)
         training_df = dp.preprocess_data(tqqq)
-        training_df.dropna(inplace=True)
+        training_df.fillna(0, inplace=True)
 
         #  load training environment
         training_env = AssetTradingEnv(data_df=training_df)
@@ -34,7 +34,7 @@ def main():
         stop_date = '2023-11-30'
         tqqq = dp.download_data_df_from_yf(symbol, start_date, stop_date)
         testing_df = dp.preprocess_data(tqqq)
-        testing_df.dropna(inplace=True)
+        testing_df.fillna(0, inplace=True)
 
         # Load testing environment
         testing_env = AssetTradingEnv(data_df=testing_df)

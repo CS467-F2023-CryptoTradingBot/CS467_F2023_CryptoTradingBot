@@ -76,7 +76,7 @@ class RiskData:
     def set_high_value_percent_change(self, value_high_percent_change):
         self.__high_value_percent_change = value_high_percent_change
 
-    def update_risk_data(self, portfolio_balance: int):
+    def update_risk_data(self, portfolio_balance: float):
         # Set Percent Change if just got in market
         if self.__in_market is False:
             self.__initial_value = portfolio_balance
@@ -112,7 +112,7 @@ class RiskData:
         self.__flat_market_days = 0
         self.__buy_line = 0
 
-    def run_risk_analysis(self, portfolio_balance: int) -> dict:
+    def run_risk_analysis(self, portfolio_balance: float) -> dict:
 
         # MAX PORTFOLIO LOSS
         if portfolio_balance < self.__stop_loss:

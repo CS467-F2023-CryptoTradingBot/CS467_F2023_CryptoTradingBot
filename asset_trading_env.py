@@ -9,6 +9,7 @@ import csv
 import os
 from datetime import datetime
 
+
 class AssetTradingEnv(gym.Env):
     metadata = {'render_modes': ['human']}
 
@@ -17,7 +18,7 @@ class AssetTradingEnv(gym.Env):
             data_df: pd.DataFrame,
             initial_balance: float = 100_000.00,
             render_mode: str = 'human'
-            ) -> None:
+    ) -> None:
         super(AssetTradingEnv, self).__init__()
         self.data_df = data_df.copy()
         self.positions = [-1, 0, 1]
@@ -27,7 +28,7 @@ class AssetTradingEnv(gym.Env):
         self.initial_balance = initial_balance
         self.render_mode = render_mode
         curr_datetime = datetime.now().strftime("%Y%m%d%H%M%S")
-        self.results_path = "results_"+curr_datetime
+        self.results_path = "results_" + curr_datetime
         self.create_csv(self.results_path, ["Market Return", "Agent Return"])
 
         self.data_df['date'] = self.data_df.index
@@ -47,7 +48,7 @@ class AssetTradingEnv(gym.Env):
         self._asset_price_array = np.array(self.data_df['close'])
 
         shape = len(self._features_cols)
-        self.observation_space =\
+        self.observation_space = \
             spaces.Box(low=-1, high=1,
                        shape=(shape,))
         self.action_space = spaces.Discrete(len(self.positions))
@@ -84,11 +85,11 @@ class AssetTradingEnv(gym.Env):
         self._step += 1
 
         portfolio_balance, available_funds, unrealized_trade, position, \
-            trade_duration, purchase_close_price, risk_value, signal = \
+        trade_duration, purchase_close_price, risk_value, signal = \
             self._update_portfolio(signal)
 
         total_reward = self.history_info_obj.get_step_and_col(
-            self._step-1, 'total_reward')
+            self._step - 1, 'total_reward')
         step_reward = self.calc_reward(portfolio_balance)
         total_reward += step_reward + risk_value
         # print("Signal", signal,
@@ -96,7 +97,6 @@ class AssetTradingEnv(gym.Env):
         #       "Step Reward:", step_reward,
         #       "Total Reward:", total_reward,
         #       "Portfolio", portfolio_balance)
-
 
         self.history_info_obj.add_info(
             step=self._step,
@@ -113,7 +113,7 @@ class AssetTradingEnv(gym.Env):
 
         observation = self._get_obs()
         reward = self._get_reward()
-        terminated = False if portfolio_balance > self._termination_balance\
+        terminated = False if portfolio_balance > self._termination_balance \
             else True
         truncated = False if self._step < self._max_episode_steps else True
         info = self._get_info()
@@ -228,7 +228,7 @@ class AssetTradingEnv(gym.Env):
                 self.risk_data.set_initial_value(portfolio_balance)
 
         return portfolio_balance, available_funds, unrealized_trade, \
-            position, trade_duration, purchase_close_price, risk_value, action
+               position, trade_duration, purchase_close_price, risk_value, action
 
     def _get_obs(self):
         obs = self._obs_array[self._step]
@@ -263,13 +263,24 @@ class AssetTradingEnv(gym.Env):
         # random.seed(42)
         # reward = random.randrange(-100, 100)/100
 
+        percent_gain_exp = 2
+        gain_reward_value = 0
+
         # Risk Analysis
         self.risk_data.update_risk_data(p_current)
         risk_analysis = self.risk_data.run_risk_analysis(p_current)
         risk_value = risk_analysis["risk_reward"]
 
+        # Percent gain reward
+        prior_balance = self.history_info_obj.get_step_and_col(self._step - 1, 'portfolio_balance')
+        # print("Current Balance:", p_current)
+        # print("Prior Balance:", prior_balance, "\n")
+
+        if p_current > prior_balance:
+            gain_reward_value = self.risk_data.get_current_value_percent_change() ** percent_gain_exp
+
         # need to update when other reward functions get added
-        return self.standard_deviation_reward(p_current) + self.atr_reward_reward(p_current) + risk_value
+        return self.standard_deviation_reward(p_current) + self.atr_reward_reward(p_current) + risk_value + gain_reward_value
 
     def atr_reward_reward(self, p_current: float) -> float:
         """
@@ -327,8 +338,8 @@ class AssetTradingEnv(gym.Env):
 
         # loads an array with previous n days close price and calculate trailing mean and standard deviation
         for i in range(n_days):
-            trailing_close.append(self.history_info_obj.get_step_and_col(prev_step-i, 'close'))
-            trailing_signals.append(self.history_info_obj.get_step_and_col(prev_step-i, 'signal'))
+            trailing_close.append(self.history_info_obj.get_step_and_col(prev_step - i, 'close'))
+            trailing_signals.append(self.history_info_obj.get_step_and_col(prev_step - i, 'signal'))
         trailing_avg = np.mean(trailing_close)
         trailing_std = np.std(trailing_close)
 
@@ -342,32 +353,34 @@ class AssetTradingEnv(gym.Env):
 
         # reward if bought previously and price swings up
         if self.history_info_obj.get_step_and_col(prev_step - 1, "signal") == 1 \
-            and self.history_info_obj.get_step_and_col(prev_step, "close") > trailing_avg+trailing_std:
+                and self.history_info_obj.get_step_and_col(prev_step, "close") > trailing_avg + trailing_std:
             reward += 1
             if self.history_info_obj.get_step_and_col(prev_step - 1, "signal") == 1 \
-                and self.history_info_obj.get_step_and_col(prev_step, "close") > trailing_avg+(2*trailing_std):
+                    and self.history_info_obj.get_step_and_col(prev_step, "close") > trailing_avg + (2 * trailing_std):
                 reward += 10
                 if self.history_info_obj.get_step_and_col(prev_step - 1, "signal") == 1 \
-                    and self.history_info_obj.get_step_and_col(prev_step, "close") > trailing_avg+(3*trailing_std):
+                        and self.history_info_obj.get_step_and_col(prev_step, "close") > trailing_avg + (
+                        3 * trailing_std):
                     reward += 100
 
         # punish if bought previously and price swings down
         if self.history_info_obj.get_step_and_col(prev_step - 1, "signal") == -1 \
-            and self.history_info_obj.get_step_and_col(prev_step, "close") < trailing_avg-trailing_std:
+                and self.history_info_obj.get_step_and_col(prev_step, "close") < trailing_avg - trailing_std:
             reward -= 1
             if self.history_info_obj.get_step_and_col(prev_step - 1, "signal") == -1 \
-                and self.history_info_obj.get_step_and_col(prev_step, "close") < trailing_avg-(2*trailing_std):
+                    and self.history_info_obj.get_step_and_col(prev_step, "close") < trailing_avg - (2 * trailing_std):
                 reward -= 10
                 if self.history_info_obj.get_step_and_col(prev_step - 1, "signal") == -1 \
-                    and self.history_info_obj.get_step_and_col(prev_step, "close") < trailing_avg-(3*trailing_std):
+                        and self.history_info_obj.get_step_and_col(prev_step, "close") < trailing_avg - (
+                        3 * trailing_std):
                     reward -= 100
 
-        #print(reward)
+        # print(reward)
         return reward
 
     def calc_risk(self):
         pass
-    
+
     def create_csv(self, file_path, headers):
         model_dir = './results/'
         os.makedirs(model_dir, exist_ok=True)
@@ -377,9 +390,10 @@ class AssetTradingEnv(gym.Env):
         file.close()
 
     def append_to_csv(self, file_path, data):
-        with open('./results/'+file_path, 'a', newline='') as file:
+        with open('./results/' + file_path, 'a', newline='') as file:
             writer = csv.writer(file)
             writer.writerow(data)
+
 
 class HistoryInfo():
     def __init__(self, extras_cols: dict, extras_array: np.array) -> None:
@@ -404,7 +418,7 @@ class HistoryInfo():
             step_reward: float,
             total_reward: float,
             risk_value: float
-            ) -> None:
+    ) -> None:
 
         date = self.get_extras_data_col(step, 'date')
         close = self.get_extras_data_col(step, 'close')
@@ -459,6 +473,7 @@ class HistoryInfo():
 
 if __name__ == '__main__':
     from data_processor import DataProcessor
+
     dp = DataProcessor()
     symbol = 'TQQQ'
     start_date = '2010-02-11'

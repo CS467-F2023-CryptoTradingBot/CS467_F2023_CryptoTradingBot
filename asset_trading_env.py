@@ -177,20 +177,20 @@ class AssetTradingEnv(gym.Env):
             portfolio_balance = round(available_funds
                                       + unrealized_trade, 3)
 
-            # Risk Analysis
-            if action == self.hold or action == self.buy:
-                self.risk_data.update_risk_data(portfolio_balance)
-                risk_analysis = self.risk_data.run_risk_analysis(portfolio_balance)
-
-                # If too much risk is True, change signal to SELL (-1)
-                if risk_analysis["too_much_risk"]:
-                    action = self.sell
-                    risk_value = risk_analysis["risk_reward"]
-                    self.risk_data.reset_risk_values()
-                else:
-                    risk_value = risk_analysis["risk_reward"]
-            else:
-                self.risk_data.reset_risk_values()
+            # # Risk Analysis
+            # if action == self.hold or action == self.buy:
+            #     self.risk_data.update_risk_data(portfolio_balance)
+            #     risk_analysis = self.risk_data.run_risk_analysis(portfolio_balance)
+            #
+            #     # If too much risk is True, change signal to SELL (-1)
+            #     if risk_analysis["too_much_risk"]:
+            #         action = self.sell
+            #         risk_value = risk_analysis["risk_reward"]
+            #         self.risk_data.reset_risk_values()
+            #     else:
+            #         risk_value = risk_analysis["risk_reward"]
+            # else:
+            #     self.risk_data.reset_risk_values()
 
             if action == self.hold or action == self.buy:
                 trade_duration += 1
@@ -204,20 +204,20 @@ class AssetTradingEnv(gym.Env):
                 self.risk_data.reset_risk_values()
 
         else:
-            # Risk Analysis
-            if action == self.hold or action == self.buy:
-                self.risk_data.update_risk_data(portfolio_balance)
-                risk_analysis = self.risk_data.run_risk_analysis(portfolio_balance)
-
-                # If too much risk is True, change signal to SELL (-1)
-                if risk_analysis["too_much_risk"]:
-                    action = self.sell
-                    risk_value = risk_analysis["risk_reward"]
-                    self.risk_data.reset_risk_values()
-                else:
-                    risk_value = risk_analysis["risk_reward"]
-            else:
-                self.risk_data.reset_risk_values()
+            # # Risk Analysis
+            # if action == self.hold or action == self.buy:
+            #     self.risk_data.update_risk_data(portfolio_balance)
+            #     risk_analysis = self.risk_data.run_risk_analysis(portfolio_balance)
+            #
+            #     # If too much risk is True, change signal to SELL (-1)
+            #     if risk_analysis["too_much_risk"]:
+            #         action = self.sell
+            #         risk_value = risk_analysis["risk_reward"]
+            #         self.risk_data.reset_risk_values()
+            #     else:
+            #         risk_value = risk_analysis["risk_reward"]
+            # else:
+            #     self.risk_data.reset_risk_values()
 
             if action == self.buy and position == 0:
                 unrealized_trade = round(available_funds, 3)
@@ -263,9 +263,13 @@ class AssetTradingEnv(gym.Env):
         # random.seed(42)
         # reward = random.randrange(-100, 100)/100
 
-        # need to update when other reward functions get added
-        return 0.2*self.standard_deviation_reward(p_current) + 0.8*self.atr_reward_reward(p_current)
+        # Risk Analysis
+        self.risk_data.update_risk_data(p_current)
+        risk_analysis = self.risk_data.run_risk_analysis(p_current)
+        risk_value = risk_analysis["risk_reward"]
 
+        # need to update when other reward functions get added
+        return self.standard_deviation_reward(p_current) + self.atr_reward_reward(p_current) + risk_value
 
     def atr_reward_reward(self, p_current: float) -> float:
         """

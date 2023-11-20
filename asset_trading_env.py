@@ -271,16 +271,8 @@ class AssetTradingEnv(gym.Env):
         risk_analysis = self.risk_data.run_risk_analysis(p_current)
         risk_value = risk_analysis["risk_reward"]
 
-        # Percent gain reward
-        prior_balance = self.history_info_obj.get_step_and_col(self._step - 1, 'portfolio_balance')
-        # print("Current Balance:", p_current)
-        # print("Prior Balance:", prior_balance, "\n")
-
-        if p_current > prior_balance:
-            gain_reward_value = self.risk_data.get_current_value_percent_change() ** percent_gain_exp
-
         # need to update when other reward functions get added
-        return self.standard_deviation_reward(p_current) + self.atr_reward_reward(p_current) + risk_value + gain_reward_value
+        return 0.2*self.standard_deviation_reward(p_current) + 0.2*self.atr_reward_reward(p_current) + risk_value + gain_reward_value
 
     def atr_reward_reward(self, p_current: float) -> float:
         """
